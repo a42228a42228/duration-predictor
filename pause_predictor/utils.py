@@ -31,8 +31,8 @@ def get_data_from_xml(id, xml_file):
           pause = (int(next_phrase.attrib['start_time']) - int(phrase.attrib['end_time'])) * pow(10, -3)
           # clause_pause_list += [ignore_flag] * (len(phrase.text)-1) + [pause]
           clause_pause_list.append(pause)
-    id += 1
     data += [{"id": id, "text": text, "clause_pause_list": clause_pause_list, "sentence_pause":sentence_pause, "file_path": xml_file}]
+    id += 1
   return id, data
 
 def get_all_filepath(dir_path):
@@ -42,3 +42,12 @@ def get_all_filepath(dir_path):
             if ".xml" in f:
                 file_path.append(join(root, f))
     return file_path
+  
+def get_all_data(xml_file_path):
+      # get all data
+    id = 0
+    all_data = []
+    for xml_file in xml_file_path:
+        id, data = get_data_from_xml(id, xml_file)
+        all_data += data
+    return all_data
