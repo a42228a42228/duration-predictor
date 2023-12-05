@@ -1,9 +1,7 @@
-import xml.etree.ElementTree as ET
-import pandas as pd
-from os import walk
-from os.path import join
-from torch.utils.data import Dataset
 from tqdm import tqdm
+import torch
+from torch.utils.data import Dataset
+
 
 class pauseDataset(Dataset):
     def __init__(self, df):
@@ -21,10 +19,6 @@ class pauseDataset(Dataset):
 
     def __getitem__(self, idx):
         return self.features[idx]
-
-
-import torch
-from transformers import AutoTokenizer
 
 class pauseCollator():
   def __init__(self, collator_type, tokenizer, max_length=512):
@@ -97,10 +91,10 @@ class pauseCollator():
     new_labels = []
     label_idx = 0
     for input_id in input_ids:
-      word = tokenizer.decode(input_id)
+      word = self.tokenizer.decode(input_id)
       if word == '|':
         if label_idx > len(labels) - 1:
-          print(tokenizer.decode(input_ids))
+          print(self.tokenizer.decode(input_ids))
           print(labels)
         new_labels.append(labels[label_idx])
         label_idx += 1
@@ -117,11 +111,11 @@ class pauseCollator():
 
       # delete underbar
       while True:
-        text = tokenizer.decode(input_id)
+        text = self.tokenizer.decode(input_id)
         # print(text)
         if '|' in text:
           for i, id in enumerate(input_id):
-            word = tokenizer.decode(id)
+            word = self.tokenizer.decode(id)
             if word == '|':
               input_id = self._torch_del(input_id, i)
               attention_mask = self._torch_del(attention_mask, i)
@@ -144,67 +138,3 @@ class pauseCollator():
     tensor1 = tensor[0:idx]
     tensor2 = tensor[idx+1:]
     return torch.cat((tensor1, tensor2), dim=0)
-
-tokenizer = AutoTokenizer.from_pretrained('cl-tohoku/bert-base-japanese')
-pause_collator = pauseCollator("clause_pause_classifier",tokenizer)
-
-
-
-def get_data_from_xml(id, xml_file):
-  tree = ET.parse(xml_file)
-  root = tree.getroot()
-  article = root[0]
-  ignore_flag = -100
-  data = []
-  for i, sent in enumerate(article):
-    text = ""
-    clause_pause_list = [] # 文節ポーズ
-    for j, phrase in enumerate(sent):
-      text += phrase.text.replace("。", "")
-      # ポーズ計算
-      if i == len(article) - 1 and j == len(sent) - 1:    # 最後の文の最後の文末ポーズはロスに取り入れない
-        pause = ignore_flag
-        sentence_pause = ignore_flag
-        # clause_pause_list += [ignore_flag] * len(phrase.text)
-      else:
-        if j == len(sent) - 1:  # 文末
-          next_sent = article[i + 1]
-          next_phrase = next_sent[0]
-          pause = (int(next_phrase.attrib['start_time']) - int(phrase.attrib['end_time'])) * pow(10, -3)
-          sentence_pause = pause
-          # clause_pause_list += [ignore_flag] * len(phrase.text)
-        else: #文節
-          text += "_"
-          next_phrase = sent[j + 1]
-          pause = (int(next_phrase.attrib['start_time']) - int(phrase.attrib['end_time'])) * pow(10, -3)
-          # clause_pause_list += [ignore_flag] * (len(phrase.text)-1) + [pause]
-          clause_pause_list.append(pause)
-    id += 1
-    data += [{"id": id, "text": text, "clause_pause_list": clause_pause_list, "sentence_pause":sentence_pause, "file_path": xml_file}]
-  return id, data
-
-def get_all_filepath(dir_path):
-    file_path = []
-    for root, _, files in walk(dir_path):
-        for f in files:
-            if ".xml" in f:
-                file_path.append(join(root, f))
-    return file_path
-
-
-
-
-dir_path = "/mnt/aoni04/hsieh/topics/"
-# dir_path = "/content/drive/MyDrive/topics/" # for google colab
-xml_file_path = get_all_filepath(dir_path)
-
-# get all data
-id = 0
-all_data = []
-for xml_file in xml_file_path:
-    id, data = get_data_from_xml(id, xml_file)
-    all_data += data
-
-# show data
-df = pd.DataFrame(all_data)
-df.head()
