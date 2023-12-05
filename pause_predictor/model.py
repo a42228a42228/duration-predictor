@@ -40,13 +40,13 @@ class ClauseClassifer(nn.Module):
         if label is not None and self.loss_function is not None:
             loss = self.loss_function(state.view(-1, 2), label.view(-1))
 
-        # attentions = None
-        # if output_attentions:
-        #     attentions=outputs.attentions
+        attentions = None
+        if output_attentions:
+            attentions=outputs.attentions
 
-        # hidden_states = None
-        # if output_hidden_states:
-        #     hidden_states=outputs.hidden_states
+        hidden_states = None
+        if output_hidden_states:
+            hidden_states=outputs.hidden_states
 
         return ModelOutput(
             logits=state,

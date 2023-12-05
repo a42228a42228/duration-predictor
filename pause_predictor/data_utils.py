@@ -20,6 +20,7 @@ class pauseDataset(Dataset):
     def __getitem__(self, idx):
         return self.features[idx]
 
+
 class pauseCollator():
   def __init__(self, collator_type, tokenizer, max_length=512):
     self.collator_type = collator_type
@@ -131,7 +132,7 @@ class pauseCollator():
       new_attention_mask.append(torch.cat((attention_mask, torch.tensor([0] * padding_size)), dim=0))
       new_labels.append(torch.cat((label, torch.tensor([-100] * padding_size)), dim=0))
 
-    new_encodings = {"input_ids": torch.stack(new_input_ids), "token_type_ids": encodings['token_type_ids'], "attention_mask": torch.stack(new_attention_mask), "label": torch.stack(new_labels)}
+    new_encodings = {"input_ids": torch.stack(new_input_ids).int(), "token_type_ids": encodings['token_type_ids'], "attention_mask": torch.stack(new_attention_mask).int(), "label": torch.stack(new_labels).int()}
     return new_encodings
 
   def _torch_del(self, tensor, idx):
